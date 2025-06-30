@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import json
@@ -7,11 +6,26 @@ import os
 st.set_page_config(page_title="RFP Dashboard", layout="wide")
 st.title("📄 Employee Benefits RFP Dashboard")
 
-try:
-    with open("../shared/rfp_scan_results.json", "r") as f:
-        data = json.load(f)
-except FileNotFoundError:
-    st.error("rfp_scan_results.json not found.")
+# Try multiple possible paths for the results file
+possible_paths = [
+    "../shared/rfp_scan_results.json",
+    "shared/rfp_scan_results.json",
+    "./shared/rfp_scan_results.json"
+]
+
+data = None
+for path in possible_paths:
+    try:
+        with open(path, "r") as f:
+            data = json.load(f)
+            st.success(f"Data loaded from: {path}")
+            break
+    except FileNotFoundError:
+        continue
+
+if data is None:
+    st.error("rfp_scan_results.json not found in any expected location.")
+    st.info("The crawler may not have run yet, or the file path is incorrect.")
     st.stop()
 
 rows = []
@@ -28,7 +42,8 @@ for r in data:
                 "RFP Type": gpt_data.get("category", ""),
                 "Depth": r["depth"]
             })
-    except Exception:
+    except Exception as e:
+        st.warning(f"Error processing result: {e}")
         continue
 
 if not rows:
