@@ -4,8 +4,8 @@ This system crawls school district websites to find insurance-related RFP docume
 
 ## Components
 
-- **Crawler**: Uses Playwright to crawl school district websites and GPT-4 to analyze content for insurance RFPs
-- **Dashboard**: Streamlit web interface to view and download found RFPs
+- **Crawler Service**: Web service that can be triggered to crawl school district websites using Playwright and GPT-4
+- **Dashboard**: Streamlit web interface to view found RFPs and trigger crawler runs
 - **Shared Storage**: JSON file storage for data between crawler and dashboard
 
 ## Local Testing
@@ -33,8 +33,12 @@ This system crawls school district websites to find insurance-related RFP docume
 python test_local.py
 ```
 
-### Run Dashboard Locally
+### Run Services Locally
 ```bash
+# Terminal 1: Run crawler service
+python crawler_service.py
+
+# Terminal 2: Run dashboard
 streamlit run dashboard/app.py
 ```
 
@@ -49,10 +53,11 @@ streamlit run dashboard/app.py
 2. Connect your repository to Render
 3. Set environment variables in Render:
    - `OPENAI_API_KEY`: Your OpenAI API key
+   - `CRAWLER_SERVICE_URL`: URL of your crawler service (set after first deployment)
 4. Deploy using the `render.yaml` configuration
 
 ### Services Created
-- **rfp-crawler**: Cron job that runs daily at 2 AM (Docker-based for Playwright compatibility)
+- **rfp-crawler**: Web service that can be triggered to run crawler (Docker-based)
 - **rfp-dashboard**: Web service hosting the Streamlit dashboard
 
 ### File Sharing
@@ -61,9 +66,24 @@ Both services share a persistent disk (`rfp-data`) to store crawler results:
 - Dashboard: mounted at `/opt/render/project/src/shared`
 
 ### Deployment Architecture
-- **Crawler**: Uses Docker container with all necessary system dependencies for Playwright
-- **Dashboard**: Uses Python runtime for Streamlit
+- **Crawler**: Docker container with all necessary system dependencies for Playwright
+- **Dashboard**: Python runtime for Streamlit
 - **Shared Storage**: Persistent disk for data exchange between services
+- **Trigger System**: Manual trigger via dashboard or HTTP POST to `/crawl` endpoint
+
+## Usage
+
+### Manual Crawling
+1. Open the dashboard in your browser
+2. Use the "Start Crawler" button in the sidebar
+3. Monitor the crawler status
+4. View results when crawling completes
+
+### API Endpoints
+The crawler service provides these endpoints:
+- `GET /`: Health check
+- `GET /status`: Check if crawler is running
+- `POST /crawl`: Trigger a new crawl
 
 ## Configuration
 
@@ -89,11 +109,13 @@ Modify `crawler/crawl_site_enhanced.py`:
 1. **"rfp_scan_results.json not found"**: The crawler hasn't run yet or there's a file path issue
 2. **OpenAI API errors**: Check your API key and billing
 3. **Playwright issues**: The Docker container includes all necessary dependencies
+4. **Service communication**: Ensure `CRAWLER_SERVICE_URL` environment variable is set correctly
 
 ### Render-Specific Fixes
 - **Playwright dependencies**: Resolved using Docker container with pre-installed system libraries
 - **File paths**: Updated to work with both Docker and Python runtime environments
 - **Browser compatibility**: Added Render-specific browser launch arguments
+- **Cron limitations**: Replaced with web service architecture for better compatibility
 
 ### Logs
 - Check Render logs for both services
@@ -104,11 +126,11 @@ Modify `crawler/crawl_site_enhanced.py`:
 - Single school district hardcoded
 - Basic RFP detection
 - Simple file-based storage
-- No notification system
+- Manual triggering required
 
 ## Next Steps
 - Multi-site crawling
 - Database storage
 - Enhanced RFP extraction
-- Notification system
+- Automated scheduling
 - Geographic visualization 

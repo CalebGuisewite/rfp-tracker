@@ -32,6 +32,7 @@ COPY crawler/requirements.txt .
 COPY dashboard/requirements.txt ./dashboard_requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir -r dashboard_requirements.txt
+RUN pip install --no-cache-dir flask
 
 # Install Playwright browsers
 RUN playwright install chromium
@@ -49,5 +50,8 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 # Make start script executable
 RUN chmod +x crawler/start.sh
 
-# Default command
-CMD ["bash", "crawler/start.sh"] 
+# Expose port
+EXPOSE 8080
+
+# Default command - run the web service
+CMD ["python", "crawler_service.py"] 

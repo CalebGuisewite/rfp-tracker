@@ -1,9 +1,8 @@
 services:
-  - type: cron
+  - type: web
     name: rfp-crawler
     runtime: docker
     dockerfilePath: ./Dockerfile
-    schedule: "0 2 * * *"
     envVars:
       - key: OPENAI_API_KEY
         sync: false
