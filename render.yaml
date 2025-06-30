@@ -1,49 +1,197 @@
-# render.yaml - MVP Deployment Configuration
+# render.yaml - Production-Ready RFP Crawler Configuration
+# Updated with all fixes and improvements
 
 services:
-  # Backend Cron Job - Runs the RFP crawler
+  # Backend Cron Job - RFP Crawler with Enhanced Error Handling
   - type: cron
-    name: rfp-crawler-mvp
+    name: rfp-crawler-backend
     runtime: python
-    buildCommand: |
-      echo "Installing Python dependencies..."
-      pip install --upgrade pip
-      pip install -r requirements.txt
-      echo "Installing Playwright browsers..."
-      playwright install chromium
-      echo "Creating shared directory..."
-      mkdir -p /opt/render/project/src/shared
-      echo "Build completed successfully!"
-    startCommand: python main_crawler.py
-    schedule: "0 9 * * MON,WED,FRI"  # Run Mon, Wed, Fri at 9 AM UTC (5 AM EST)
+    plan: starter
     
+    # Enhanced build process with error handling
+    buildCommand: |
+      echo "🔧 Starting build process..."
+      echo "📍 Working directory: $(pwd)"
+      echo "🐍 Python version: $(python --version)"
+      
+      echo "📦 Upgrading pip..."
+      pip install --upgrade pip
+      
+      echo "📋 Installing Python dependencies..."
+      pip install -r requirements.txt
+      
+      echo "🎭 Installing Playwright browsers..."
+      playwright install chromium --with-deps
+      
+      echo "📁 Creating shared directory..."
+      mkdir -p /opt/render/project/src/shared
+      
+      echo "🔍 Verifying installation..."
+      python -c "import playwright; print('✅ Playwright imported successfully')"
+      python -c "import anthropic; print('✅ Anthropic imported successfully')"
+      python -c "import os; print(f'✅ API key present: {bool(os.getenv(\"ANTHROPIC_API_KEY\"))}')"
+      
+      echo "🎉 Build completed successfully!"
+    
+    startCommand: python main_crawler.py
+    schedule: "0 9 * * MON,WED,FRI"  # 9 AM UTC = 5 AM EST, Mon/Wed/Fri
+    
+    # Environment variables with comprehensive configuration
     envVars:
+      # Required - API Keys
       - key: ANTHROPIC_API_KEY
-        sync: false  # You'll set this manually in Render dashboard
+        sync: false  # Set manually in Render dashboard for security
+      
+      # Crawler Configuration
       - key: SCHOOL_DISTRICTS
         value: "https://www.boone.kyschools.us,https://www.carroll.kyschools.us"
       - key: CRAWLER_MAX_PAGES
         value: "15"
       - key: CRAWLER_MAX_DEPTH
-        value: "2"
+        value: "2" 
       - key: CRAWL_DELAY
         value: "2"
+      - key: REQUEST_TIMEOUT
+        value: "60"
+      - key: NAVIGATION_TIMEOUT
+        value: "60"
+      
+      # Directory Configuration
       - key: SHARED_DIR
         value: "/opt/render/project/src/shared"
+      
+      # Logging and Monitoring
       - key: LOG_LEVEL
         value: "INFO"
+      - key: ENABLE_DEBUG_OUTPUT
+        value: "false"
+      
+      # Claude AI Configuration
+      - key: CLAUDE_MODEL
+        value: "claude-3-5-sonnet-20241022"
+      - key: CLAUDE_MAX_TOKENS
+        value: "1000"
+      - key: CLAUDE_TEMPERATURE
+        value: "0.1"
+      
+      # Browser Configuration
+      - key: BROWSER_HEADLESS
+        value: "true"
+      - key: BROWSER_VIEWPORT_WIDTH
+        value: "1920"
+      - key: BROWSER_VIEWPORT_HEIGHT
+        value: "1080"
+      
+      # Performance Tuning
+      - key: MAX_CONCURRENT_PAGES
+        value: "1"
+      - key: ENABLE_BROWSER_CACHE
+        value: "false"
+      - key: DISABLE_IMAGES
+        value: "true"
+      - key: DISABLE_JAVASCRIPT_WHEN_POSSIBLE
+        value: "false"
     
-  # Frontend Web Service - Dashboard
+    # Resource limits and scaling
+    plan: starter
+    autoDeploy: true
+    
+  # Frontend Web Service - Enhanced Dashboard
   - type: web
-    name: rfp-dashboard-mvp
+    name: rfp-dashboard-frontend
     runtime: python
+    plan: starter
+    
+    # Enhanced build for dashboard
     buildCommand: |
+      echo "🌐 Building dashboard frontend..."
+      echo "🐍 Python version: $(python --version)"
+      
+      echo "📦 Upgrading pip..."
       pip install --upgrade pip
+      
+      echo "📋 Installing frontend dependencies..."
       pip install -r frontend_requirements.txt
+      
+      echo "🔍 Verifying Flask installation..."
+      python -c "import flask; print(f'✅ Flask {flask.__version__} installed')"
+      
+      echo "📁 Verifying shared directory access..."
+      mkdir -p /opt/render/project/src/shared
+      
+      echo "🎉 Frontend build completed!"
+    
     startCommand: python dashboard/app.py
     
+    # Health check endpoint
+    healthCheckPath: /health
+    
+    # Environment variables for dashboard
     envVars:
+      # Directory Configuration
       - key: SHARED_DIR
         value: "/opt/render/project/src/shared"
+      
+      # Flask Configuration
       - key: FLASK_ENV
         value: "production"
+      - key: FLASK_DEBUG
+        value: "false"
+      
+      # Dashboard Configuration
+      - key: DASHBOARD_TITLE
+        value: "School District RFP Crawler"
+      - key: DASHBOARD_REFRESH_INTERVAL
+        value: "300"  # 5 minutes
+      - key: MAX_RFPS_DISPLAY
+        value: "100"
+      
+      # Security
+      - key: SECRET_KEY
+        generateValue: true
+      
+      # Performance
+      - key: ENABLE_GZIP
+        value: "true"
+      - key: CACHE_TIMEOUT
+        value: "300"
+    
+    # Auto-deployment and scaling
+    autoDeploy: true
+    
+    # Custom domains support (optional)
+    # domains:
+    #   - name: your-custom-domain.com
+
+# Global configuration
+previewsEnabled: true
+
+# Environment variables available to all services
+envVars:
+  # Global settings that both services can use
+  - key: APP_VERSION
+    value: "1.0.0"
+  - key: DEPLOYMENT_ENV
+    value: "production"
+  - key: TIMEZONE
+    value: "America/New_York"
+  
+  # Contact and support info
+  - key: SUPPORT_EMAIL
+    value: "your-email@company.com"
+  - key: SUPPORT_URL
+    value: "https://github.com/yourusername/rfp-tracker"
+  
+  # Feature flags
+  - key: ENABLE_EMAIL_NOTIFICATIONS
+    value: "false"
+  - key: ENABLE_SLACK_NOTIFICATIONS
+    value: "false"
+  - key: ENABLE_WEBHOOK_NOTIFICATIONS
+    value: "false"
+  
+  # Data retention
+  - key: RESULTS_RETENTION_DAYS
+    value: "30"
+  - key: LOGS_RETENTION_DAYS
+    value: "7"

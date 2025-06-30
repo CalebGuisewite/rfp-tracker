@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Playwright-based crawler for school district websites
-Enhanced version of your existing code
+Fixed version - no global client initialization
 """
 
 import anthropic
@@ -17,8 +17,26 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize Anthropic client
-client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+# DON'T initialize client here - do it in the function
+# client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))  # ← REMOVE THIS
+
+def get_anthropic_client():
+    """Get Anthropic client with error handling"""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    
+    if not api_key:
+        raise ValueError("ANTHROPIC_API_KEY environment variable not found")
+    
+    if not api_key.startswith('sk-ant-'):
+        raise ValueError(f"Invalid API key format. Expected to start with 'sk-ant-', got: {api_key[:10]}...")
+    
+    try:
+        # Use older, more stable version initialization
+        client = anthropic.Anthropic(api_key=api_key)
+        return client
+    except Exception as e:
+        logger.error(f"Failed to initialize Anthropic client: {e}")
+        raise
 
 def is_relevant_page(content, url):
     """Use Claude to determine if a page contains relevant RFP information"""
@@ -54,6 +72,9 @@ Return JSON only (no other text):
 }}
 """
     try:
+        # Get client when we actually need it
+        client = get_anthropic_client()
+        
         response = client.messages.create(
             model="claude-3-5-sonnet-20241022",
             max_tokens=1000,
@@ -116,6 +137,14 @@ def crawl_site_with_playwright(start_url, max_depth=2, max_pages=20):
     """Enhanced Playwright crawler for school districts"""
     visited = set()
     results = []
+    
+    # Test Anthropic client first
+    try:
+        test_client = get_anthropic_client()
+        logger.info("✅ Anthropic client test successful")
+    except Exception as e:
+        logger.error(f"❌ Anthropic client test failed: {e}")
+        return []
     
     with sync_playwright() as p:
         # Launch browser with Render-optimized options
