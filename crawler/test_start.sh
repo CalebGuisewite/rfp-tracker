@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "=== Testing Deployment Environment ==="
+echo "=== Testing Requests + BeautifulSoup Deployment ==="
 
 # Test basic Python functionality
 echo "Testing Python..."
@@ -12,12 +12,12 @@ cd /opt/render/project/src/crawler
 pwd
 ls -la
 
+# Test the requests approach
+echo "Testing requests + BeautifulSoup..."
+python test_requests.py
+
 # Test the environment test script
 echo "Running environment test..."
 python test_deployment.py
-
-# Test Playwright installation
-echo "Testing Playwright..."
-playwright --version
 
 echo "=== Deployment Test Complete ===" 

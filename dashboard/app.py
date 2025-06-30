@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import json
 import os
+from datetime import datetime
 
 st.set_page_config(page_title="RFP Dashboard", layout="wide")
 st.title("📄 Employee Benefits RFP Dashboard")
@@ -18,6 +19,7 @@ except FileNotFoundError:
     st.error(f"rfp_scan_results.json not found at {results_file}")
     st.stop()
 
+# Process the data
 rows = []
 for r in data:
     try:
@@ -29,10 +31,14 @@ for r in data:
                 "Deadline": gpt_data.get("submission_deadline", ""),
                 "Submission Location": gpt_data.get("submission_location", ""),
                 "Contact Email": gpt_data.get("contact_email", ""),
+                "Budget Range": gpt_data.get("budget_range", ""),
+                "Confidence": gpt_data.get("confidence", "Low"),
                 "RFP Type": gpt_data.get("category", ""),
-                "Depth": r["depth"]
+                "Depth": r["depth"],
+                "Content Length": r.get("content_length", 0)
             })
-    except Exception:
+    except Exception as e:
+        st.warning(f"Error processing result: {e}")
         continue
 
 if not rows:
@@ -40,5 +46,51 @@ if not rows:
     st.stop()
 
 df = pd.DataFrame(rows)
-st.dataframe(df, use_container_width=True)
-st.download_button("Download CSV", df.to_csv(index=False), "rfps.csv")
+
+# Sidebar filters
+st.sidebar.header("Filters")
+
+# Confidence filter
+confidence_filter = st.sidebar.multiselect(
+    "Confidence Level",
+    options=df["Confidence"].unique(),
+    default=df["Confidence"].unique()
+)
+
+# Filter the dataframe
+filtered_df = df[df["Confidence"].isin(confidence_filter)]
+
+# Display statistics
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("Total RFPs Found", len(filtered_df))
+with col2:
+    high_confidence = len(filtered_df[filtered_df["Confidence"] == "High"])
+    st.metric("High Confidence", high_confidence)
+with col3:
+    st.metric("Average Content Length", f"{filtered_df['Content Length'].mean():.0f} chars")
+
+# Display the data
+st.subheader("Employee Benefits RFPs")
+st.dataframe(filtered_df, use_container_width=True)
+
+# Download options
+col1, col2 = st.columns(2)
+with col1:
+    st.download_button(
+        "Download CSV", 
+        filtered_df.to_csv(index=False), 
+        "rfps.csv",
+        mime="text/csv"
+    )
+with col2:
+    st.download_button(
+        "Download JSON", 
+        json.dumps(filtered_df.to_dict('records'), indent=2), 
+        "rfps.json",
+        mime="application/json"
+    )
+
+# Show raw data for debugging
+with st.expander("Raw Crawl Data"):
+    st.json(data)
