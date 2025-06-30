@@ -14,7 +14,7 @@ services:
     buildCommand: |
       pip install -r crawler/requirements.txt
       playwright install chromium
-    startCommand: cd crawler && bash start.sh
+    startCommand: cd crawler && python main.py
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
