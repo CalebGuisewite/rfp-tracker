@@ -22,7 +22,7 @@ def main():
     
     try:
         # Crawl the test school district
-        test_url = "https://www.carroll.kyschools.us"
+        test_url = "https://www.boone.kyschools.us"  # Try a different school district
         print(f"🕷️ Starting crawl of: {test_url}")
         
         results = crawl_site(test_url, max_depth=3, max_pages=30)
