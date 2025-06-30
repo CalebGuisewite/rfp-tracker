@@ -1,10 +1,8 @@
-# Core crawler dependencies
+# Well-tested, stable versions
 playwright==1.40.0
-anthropic==0.26.0
+anthropic==0.25.1
 beautifulsoup4==4.12.2
-lxml==4.9.3
+lxml==4.9.4
 requests==2.31.0
-
-# Utilities
 python-dotenv==1.0.0
 certifi==2023.11.17
