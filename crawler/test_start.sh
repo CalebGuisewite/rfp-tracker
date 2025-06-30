@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "=== Testing Requests + BeautifulSoup Deployment ==="
+echo "=== Testing Requests + BeautifulSoup + Claude Deployment ==="
 
 # Test basic Python functionality
 echo "Testing Python..."
@@ -16,9 +16,9 @@ ls -la
 echo "Testing requests + BeautifulSoup..."
 python test_requests.py
 
-# Test OpenAI API
-echo "Testing OpenAI API..."
-python test_openai.py
+# Test Anthropic API
+echo "Testing Anthropic Claude API..."
+python test_anthropic.py
 
 # Test the environment test script
 echo "Running environment test..."

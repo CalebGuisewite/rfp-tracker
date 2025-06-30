@@ -23,17 +23,20 @@ except FileNotFoundError:
 rows = []
 for r in data:
     try:
-        gpt_data = json.loads(r['gpt_result'])
-        if gpt_data.get("is_rfp") and gpt_data.get("category", "").lower() == "employee benefits":
+        # Handle both old gpt_result and new claude_result
+        result_key = 'claude_result' if 'claude_result' in r else 'gpt_result'
+        claude_data = json.loads(r[result_key])
+        
+        if claude_data.get("is_rfp") and claude_data.get("category", "").lower() == "employee benefits":
             rows.append({
                 "School URL": r["url"],
-                "Summary": gpt_data.get("summary", ""),
-                "Deadline": gpt_data.get("submission_deadline", ""),
-                "Submission Location": gpt_data.get("submission_location", ""),
-                "Contact Email": gpt_data.get("contact_email", ""),
-                "Budget Range": gpt_data.get("budget_range", ""),
-                "Confidence": gpt_data.get("confidence", "Low"),
-                "RFP Type": gpt_data.get("category", ""),
+                "Summary": claude_data.get("summary", ""),
+                "Deadline": claude_data.get("submission_deadline", ""),
+                "Submission Location": claude_data.get("submission_location", ""),
+                "Contact Email": claude_data.get("contact_email", ""),
+                "Budget Range": claude_data.get("budget_range", ""),
+                "Confidence": claude_data.get("confidence", "Low"),
+                "RFP Type": claude_data.get("category", ""),
                 "Depth": r["depth"],
                 "Content Length": r.get("content_length", 0)
             })

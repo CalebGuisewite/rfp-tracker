@@ -6,7 +6,7 @@ services:
     startCommand: "bash crawler/start.sh"
     schedule: "0 2 * * *"
     envVars:
-      - key: OPENAI_API_KEY
+      - key: ANTHROPIC_API_KEY
         sync: false
 
   - type: web

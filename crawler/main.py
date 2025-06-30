@@ -12,12 +12,12 @@ def main():
     shared_dir = os.path.join(project_root, "shared")
     os.makedirs(shared_dir, exist_ok=True)
     
-    # Check if OpenAI API key is set
-    if not os.getenv("OPENAI_API_KEY"):
-        print("❌ ERROR: OPENAI_API_KEY environment variable not set")
+    # Check if Anthropic API key is set
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        print("❌ ERROR: ANTHROPIC_API_KEY environment variable not set")
         sys.exit(1)
     
-    print("✅ OpenAI API key found")
+    print("✅ Anthropic API key found")
     print(f"✅ Shared directory: {shared_dir}")
     
     try:
@@ -40,8 +40,8 @@ def main():
         rfp_count = 0
         for result in results:
             try:
-                gpt_data = json.loads(result['gpt_result'])
-                if gpt_data.get("is_rfp", False):
+                claude_data = json.loads(result['claude_result'])
+                if claude_data.get("is_rfp", False):
                     rfp_count += 1
             except:
                 pass

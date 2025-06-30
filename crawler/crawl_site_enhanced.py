@@ -1,4 +1,4 @@
-import openai
+import anthropic
 import os
 import requests
 import time
@@ -6,11 +6,11 @@ from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 import re
 
-# Initialize OpenAI client
-client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Initialize Anthropic client
+client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
 def is_relevant_page(content, url):
-    """Use GPT to determine if a page contains relevant RFP information"""
+    """Use Claude to determine if a page contains relevant RFP information"""
     prompt = f"""
 You are an AI agent helping an insurance brokerage locate RFPs related only to:
 - Employee benefits
@@ -34,15 +34,16 @@ Return JSON:
 }}
 """
     try:
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.1
+        response = client.messages.create(
+            model="claude-3-sonnet-20240229",
+            max_tokens=1000,
+            temperature=0.1,
+            messages=[{"role": "user", "content": prompt}]
         )
-        return response.choices[0].message.content
+        return response.content[0].text
     except Exception as e:
-        print(f"[GPT ERROR] {e}")
-        return '{"is_rfp": false, "summary": "Error processing with GPT", "confidence": "Low"}'
+        print(f"[CLAUDE ERROR] {e}")
+        return '{"is_rfp": false, "summary": "Error processing with Claude", "confidence": "Low"}'
 
 def extract_text_from_html(html_content):
     """Extract clean text from HTML content"""
@@ -119,15 +120,15 @@ def crawl_site(start_url, max_depth=3, max_pages=50):
             if not content:
                 return
             
-            # Use GPT to analyze the content
-            gpt_result = is_relevant_page(content, url)
-            print(f"  ↪ GPT Result: {gpt_result[:100]}...")
+            # Use Claude to analyze the content
+            claude_result = is_relevant_page(content, url)
+            print(f"  ↪ Claude Result: {claude_result[:100]}...")
             
             results.append({
                 "url": url,
                 "depth": depth,
                 "content_length": len(content),
-                "gpt_result": gpt_result
+                "claude_result": claude_result
             })
             
             # If we haven't reached max pages, continue crawling
