@@ -2,7 +2,7 @@ services:
   - type: cron
     name: rfp-crawler
     runtime: python
-    buildCommand: "apt-get update -qq && apt-get install -y chromium-browser && pip install -r crawler/requirements.txt"
+    buildCommand: "pip install -r crawler/requirements.txt"
     startCommand: "bash crawler/start.sh"
     schedule: "0 2 * * *"
     envVars:

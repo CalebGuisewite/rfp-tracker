@@ -38,23 +38,16 @@ def setup_driver():
     chrome_options.add_argument("--allow-running-insecure-content")
     chrome_options.add_argument("--disable-features=VizDisplayCompositor")
     
-    # Set binary location for chromium-browser
-    chrome_options.binary_location = "/usr/bin/chromium-browser"
-    
     try:
-        # Try to use system Chrome/Chromium
-        driver = webdriver.Chrome(options=chrome_options)
+        # Use webdriver-manager to handle driver installation
+        print("🔧 Installing Chrome driver via webdriver-manager...")
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        print("✅ Chrome driver created successfully")
         return driver
     except Exception as e:
-        print(f"Error with system Chrome/Chromium: {e}")
-        try:
-            # Fallback to webdriver-manager
-            service = Service(ChromeDriverManager().install())
-            driver = webdriver.Chrome(service=service, options=chrome_options)
-            return driver
-        except Exception as e2:
-            print(f"Error with webdriver-manager: {e2}")
-            return None
+        print(f"❌ Error with webdriver-manager: {e}")
+        return None
 
 def is_relevant_page(content, url):
     """Use Claude to determine if a page contains relevant RFP information"""
