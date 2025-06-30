@@ -6,7 +6,8 @@ from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
 import re
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Initialize OpenAI client
+client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 def is_relevant_page(content, url):
     """Use GPT to determine if a page contains relevant RFP information"""
@@ -33,7 +34,7 @@ Return JSON:
 }}
 """
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.1

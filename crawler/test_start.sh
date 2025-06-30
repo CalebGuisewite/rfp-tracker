@@ -16,6 +16,10 @@ ls -la
 echo "Testing requests + BeautifulSoup..."
 python test_requests.py
 
+# Test OpenAI API
+echo "Testing OpenAI API..."
+python test_openai.py
+
 # Test the environment test script
 echo "Running environment test..."
 python test_deployment.py
