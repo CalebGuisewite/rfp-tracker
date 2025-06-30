@@ -1,99 +1,109 @@
-import streamlit as st
-import pandas as pd
-import json
+#!/usr/bin/env python3
+"""
+Flask dashboard for RFP crawler - replacing Streamlit
+"""
+
 import os
+import json
 from datetime import datetime
+from flask import Flask, render_template, jsonify
+import logging
 
-st.set_page_config(page_title="RFP Dashboard", layout="wide")
-st.title("📄 Employee Benefits RFP Dashboard")
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Get the project root directory
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-shared_dir = os.path.join(project_root, "shared")
-results_file = os.path.join(shared_dir, "rfp_scan_results.json")
+app = Flask(__name__)
 
-try:
-    with open(results_file, "r") as f:
-        data = json.load(f)
-except FileNotFoundError:
-    st.error(f"rfp_scan_results.json not found at {results_file}")
-    st.stop()
+# Configuration
+SHARED_DIR = os.getenv('SHARED_DIR', '/opt/render/project/src/shared')
+RESULTS_FILE = os.path.join(SHARED_DIR, 'rfp_scan_results.json')
+DASHBOARD_FILE = os.path.join(SHARED_DIR, 'dashboard_summary.json')
 
-# Process the data
-rows = []
-for r in data:
+def load_data():
+    """Load the latest crawler results"""
     try:
-        # Handle both old gpt_result and new claude_result
-        result_key = 'claude_result' if 'claude_result' in r else 'gpt_result'
-        claude_data = json.loads(r[result_key])
+        # Try dashboard summary first (cleaner format)
+        if os.path.exists(DASHBOARD_FILE):
+            with open(DASHBOARD_FILE, 'r') as f:
+                return json.load(f)
         
-        if claude_data.get("is_rfp") and claude_data.get("category", "").lower() == "employee benefits":
-            rows.append({
-                "School URL": r["url"],
-                "Summary": claude_data.get("summary", ""),
-                "Deadline": claude_data.get("submission_deadline", ""),
-                "Submission Location": claude_data.get("submission_location", ""),
-                "Contact Email": claude_data.get("contact_email", ""),
-                "Budget Range": claude_data.get("budget_range", ""),
-                "Confidence": claude_data.get("confidence", "Low"),
-                "RFP Type": claude_data.get("category", ""),
-                "Depth": r["depth"],
-                "Content Length": r.get("content_length", 0)
-            })
+        # Fallback to full results file
+        elif os.path.exists(RESULTS_FILE):
+            with open(RESULTS_FILE, 'r') as f:
+                data = json.load(f)
+                # Convert to dashboard format
+                metadata = data.get('metadata', {})
+                return {
+                    'timestamp': metadata.get('crawl_timestamp', 'Unknown'),
+                    'total_rfps': metadata.get('total_rfps_found', 0),
+                    'total_pages': metadata.get('total_pages_crawled', 0),
+                    'categories': metadata.get('categories', {}),
+                    'active_rfps': data.get('rfp_summary', [])
+                }
+        else:
+            # Return empty data structure when no files exist
+            return {
+                'timestamp': 'No data yet',
+                'total_rfps': 0,
+                'total_pages': 0,
+                'categories': {},
+                'active_rfps': []
+            }
     except Exception as e:
-        st.warning(f"Error processing result: {e}")
-        continue
+        logger.error(f"Error loading data: {e}")
+        return {
+            'error': str(e), 
+            'timestamp': 'Error',
+            'total_rfps': 0,
+            'total_pages': 0,
+            'categories': {},
+            'active_rfps': []
+        }
 
-if not rows:
-    st.info("No employee benefits RFPs found.")
-    st.stop()
+@app.route('/')
+def dashboard():
+    """Main dashboard page"""
+    data = load_data()
+    return render_template('dashboard.html', data=data)
 
-df = pd.DataFrame(rows)
+@app.route('/api/data')
+def api_data():
+    """API endpoint for dashboard data"""
+    return jsonify(load_data())
 
-# Sidebar filters
-st.sidebar.header("Filters")
+@app.route('/api/status')
+def api_status():
+    """API endpoint for crawler status"""
+    data = load_data()
+    return jsonify({
+        'status': 'healthy',
+        'last_crawl': data.get('timestamp'),
+        'total_rfps': data.get('total_rfps', 0),
+        'total_pages': data.get('total_pages', 0),
+        'crawler_healthy': os.path.exists(RESULTS_FILE) or os.path.exists(DASHBOARD_FILE),
+        'shared_dir_exists': os.path.exists(SHARED_DIR),
+        'data_files': {
+            'results_file': os.path.exists(RESULTS_FILE),
+            'summary_file': os.path.exists(DASHBOARD_FILE)
+        }
+    })
 
-# Confidence filter
-confidence_filter = st.sidebar.multiselect(
-    "Confidence Level",
-    options=df["Confidence"].unique(),
-    default=df["Confidence"].unique()
-)
+@app.route('/health')
+def health():
+    """Health check endpoint for Render"""
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'app': 'rfp-dashboard',
+        'version': '1.0'
+    })
 
-# Filter the dataframe
-filtered_df = df[df["Confidence"].isin(confidence_filter)]
-
-# Display statistics
-col1, col2, col3 = st.columns(3)
-with col1:
-    st.metric("Total RFPs Found", len(filtered_df))
-with col2:
-    high_confidence = len(filtered_df[filtered_df["Confidence"] == "High"])
-    st.metric("High Confidence", high_confidence)
-with col3:
-    st.metric("Average Content Length", f"{filtered_df['Content Length'].mean():.0f} chars")
-
-# Display the data
-st.subheader("Employee Benefits RFPs")
-st.dataframe(filtered_df, use_container_width=True)
-
-# Download options
-col1, col2 = st.columns(2)
-with col1:
-    st.download_button(
-        "Download CSV", 
-        filtered_df.to_csv(index=False), 
-        "rfps.csv",
-        mime="text/csv"
-    )
-with col2:
-    st.download_button(
-        "Download JSON", 
-        json.dumps(filtered_df.to_dict('records'), indent=2), 
-        "rfps.json",
-        mime="application/json"
-    )
-
-# Show raw data for debugging
-with st.expander("Raw Crawl Data"):
-    st.json(data)
+if __name__ == '__main__':
+    # Create shared directory if it doesn't exist
+    os.makedirs(SHARED_DIR, exist_ok=True)
+    
+    # Get port from environment (Render sets this)
+    port = int(os.environ.get('PORT', 5000))
+    
+    # Run Flask app
+    app.run(host='0.0.0.0', port=port, debug=False)
