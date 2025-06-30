@@ -1,3 +1,4 @@
+
 from playwright.sync_api import sync_playwright
 import openai
 import os
@@ -41,19 +42,7 @@ def crawl_site(start_url, max_depth=4):
     results = []
 
     with sync_playwright() as p:
-        # Launch browser with Render-compatible settings
-        browser = p.chromium.launch(
-            headless=True,
-            args=[
-                '--no-sandbox',
-                '--disable-setuid-sandbox',
-                '--disable-dev-shm-usage',
-                '--disable-accelerated-2d-canvas',
-                '--no-first-run',
-                '--no-zygote',
-                '--disable-gpu'
-            ]
-        )
+        browser = p.chromium.launch(headless=True)
         page = browser.new_page()
 
         def crawl(url, depth):
