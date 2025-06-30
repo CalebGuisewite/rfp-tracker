@@ -1,6 +1,8 @@
 import os
 import json
 import time
+import subprocess
+import sys
 from datetime import datetime
 from crawl_with_playwright import crawl_site_with_playwright
 
@@ -10,8 +12,30 @@ SCHOOL_DISTRICTS = [
     "https://www.carroll.kyschools.us"
 ]
 
+def ensure_playwright_browsers():
+    """Ensure Playwright browsers are installed"""
+    print("🔧 Checking Playwright browser installation...")
+    try:
+        # Try to install browsers if not present
+        result = subprocess.run(
+            ["playwright", "install", "chromium"],
+            capture_output=True,
+            text=True,
+            timeout=300
+        )
+        if result.returncode == 0:
+            print("✅ Playwright browsers installed successfully")
+        else:
+            print(f"⚠️ Browser installation output: {result.stdout}")
+            print(f"⚠️ Browser installation errors: {result.stderr}")
+    except Exception as e:
+        print(f"⚠️ Could not install browsers: {e}")
+
 def main():
     print("=== Starting RFP Crawler with Playwright ===")
+    
+    # Ensure browsers are installed
+    ensure_playwright_browsers()
     
     # Check for API key
     if not os.getenv("ANTHROPIC_API_KEY"):
