@@ -1,0 +1,17 @@
+
+services:
+  - type: cron
+    name: rfp-crawler
+    runtime: python
+    buildCommand: "pip install -r crawler/requirements.txt && playwright install"
+    startCommand: "bash crawler/start.sh"
+    schedule: "0 2 * * *"
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+
+  - type: web
+    name: rfp-dashboard
+    runtime: python
+    buildCommand: "pip install -r dashboard/requirements.txt"
+    startCommand: "streamlit run dashboard/app.py --server.port=$PORT"
