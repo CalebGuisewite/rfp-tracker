@@ -1,5 +1,0 @@
-anthropic
-requests
-beautifulsoup4
-lxml
-playwright
