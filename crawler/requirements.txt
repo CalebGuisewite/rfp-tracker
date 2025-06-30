@@ -2,5 +2,4 @@ anthropic
 requests
 beautifulsoup4
 lxml
-selenium>=4.0.0
-webdriver-manager>=4.0.0
+playwright

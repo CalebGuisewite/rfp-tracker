@@ -1,16 +1,22 @@
 services:
-  - type: cron
+  - type: web
+    name: rfp-dashboard
+    env: python
+    buildCommand: pip install -r dashboard/requirements.txt
+    startCommand: cd dashboard && streamlit run app.py --server.port $PORT --server.address 0.0.0.0
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.16
+
+  - type: worker
     name: rfp-crawler
-    runtime: python
-    buildCommand: "pip install -r crawler/requirements.txt"
-    startCommand: "bash crawler/start.sh"
-    schedule: "0 2 * * *"
+    env: python
+    buildCommand: |
+      pip install -r crawler/requirements.txt
+      playwright install chromium
+    startCommand: cd crawler && bash start.sh
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
-
-  - type: web
-    name: rfp-dashboard
-    runtime: python
-    buildCommand: "pip install -r dashboard/requirements.txt"
-    startCommand: "streamlit run dashboard/app.py --server.port=$PORT"
+      - key: PYTHON_VERSION
+        value: 3.9.16

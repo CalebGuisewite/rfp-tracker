@@ -1,23 +1,27 @@
 #!/bin/bash
 
-echo "Starting RFP crawler with Selenium..."
+echo "Starting RFP crawler with Playwright..."
 
-# Navigate to the correct directory
-cd /opt/render/project/src/crawler
-
-# Check if files exist
-echo "Checking required files..."
+# Check if we're in the right directory
 if [ ! -f "main.py" ]; then
-    echo "❌ main.py not found"
+    echo "❌ Error: main.py not found. Please run from the crawler directory."
     exit 1
 fi
 
-if [ ! -f "crawl_with_selenium.py" ]; then
-    echo "❌ crawl_with_selenium.py not found"
+echo "Checking required files..."
+if [ ! -f "crawl_with_playwright.py" ]; then
+    echo "❌ Error: crawl_with_playwright.py not found"
     exit 1
 fi
 
-# Run the main crawler
+if [ ! -f "requirements.txt" ]; then
+    echo "❌ Error: requirements.txt not found"
+    exit 1
+fi
+
+echo "Installing Playwright browsers..."
+playwright install chromium
+
 echo "Running main crawler..."
 python main.py
 

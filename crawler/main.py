@@ -1,80 +1,86 @@
-from crawl_with_selenium import crawl_site_with_selenium
-import json
 import os
-import sys
+import json
+import time
+from datetime import datetime
+from crawl_with_playwright import crawl_site_with_playwright
+
+# School districts to crawl
+SCHOOL_DISTRICTS = [
+    "https://www.boone.kyschools.us",
+    "https://www.carroll.kyschools.us"
+]
 
 def main():
-    """Main crawler function with error handling"""
-    print("=== Starting RFP Crawler with Selenium ===")
+    print("=== Starting RFP Crawler with Playwright ===")
     
-    # Get the project root directory
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    shared_dir = os.path.join(project_root, "shared")
-    os.makedirs(shared_dir, exist_ok=True)
-    
-    # Check if Anthropic API key is set
+    # Check for API key
     if not os.getenv("ANTHROPIC_API_KEY"):
-        print("❌ ERROR: ANTHROPIC_API_KEY environment variable not set")
-        sys.exit(1)
+        print("❌ ANTHROPIC_API_KEY not found in environment variables")
+        return
     
     print("✅ Anthropic API key found")
+    
+    # Check shared directory
+    shared_dir = "/opt/render/project/src/shared"
+    if not os.path.exists(shared_dir):
+        print(f"❌ Shared directory not found: {shared_dir}")
+        return
+    
     print(f"✅ Shared directory: {shared_dir}")
     
-    try:
-        # Test with both Boone and Carroll County Schools (JavaScript-heavy sites)
-        test_urls = [
-            "https://www.boone.kyschools.us",
-            "https://www.carroll.kyschools.us"
-        ]
+    all_results = []
+    
+    # Crawl each school district
+    for district_url in SCHOOL_DISTRICTS:
+        print(f"\n🕷️ Starting Playwright crawl of: {district_url}")
         
-        all_results = []
-        
-        for test_url in test_urls:
-            print(f"\n🕷️ Starting Selenium crawl of: {test_url}")
+        try:
+            # Crawl the site with Playwright
+            results = crawl_site_with_playwright(
+                start_url=district_url,
+                max_depth=2,
+                max_pages=10
+            )
             
-            results = crawl_site_with_selenium(test_url, max_depth=2, max_pages=10)
-            
-            print(f"✅ Completed {test_url}. Found {len(results)} pages")
+            print(f"✅ Completed {district_url}. Found {len(results)} pages")
             all_results.extend(results)
-        
-        print(f"\n✅ Total crawl completed. Found {len(all_results)} total pages")
-        
-        # Save results
-        output_file = os.path.join(shared_dir, "rfp_scan_results.json")
-        with open(output_file, "w") as f:
-            json.dump(all_results, f, indent=2)
-        
-        print(f"✅ Results saved to: {output_file}")
-        
-        # Show summary
-        rfp_count = 0
-        for result in all_results:
-            try:
-                claude_data = json.loads(result['claude_result'])
-                if claude_data.get("is_rfp", False):
-                    rfp_count += 1
-            except:
-                pass
-        
-        print(f"📊 Summary: {rfp_count} potential RFPs found out of {len(all_results)} pages crawled")
-        
-        # Show breakdown by district
-        print(f"\n📋 Breakdown by District:")
-        for test_url in test_urls:
-            district_results = [r for r in all_results if test_url in r['url']]
-            district_rfps = 0
-            for result in district_results:
-                try:
-                    claude_data = json.loads(result['claude_result'])
-                    if claude_data.get("is_rfp", False):
-                        district_rfps += 1
-                except:
-                    pass
-            print(f"  {test_url}: {district_rfps} RFPs out of {len(district_results)} pages")
-        
-    except Exception as e:
-        print(f"❌ ERROR during crawling: {e}")
-        sys.exit(1)
+            
+        except Exception as e:
+            print(f"❌ Error crawling {district_url}: {e}")
+            continue
+    
+    # Save results
+    output_file = os.path.join(shared_dir, "rfp_scan_results.json")
+    
+    # Prepare final results
+    final_results = {
+        "timestamp": datetime.now().isoformat(),
+        "total_pages": len(all_results),
+        "districts_crawled": len(SCHOOL_DISTRICTS),
+        "results": all_results
+    }
+    
+    with open(output_file, 'w') as f:
+        json.dump(final_results, f, indent=2)
+    
+    print(f"\n✅ Total crawl completed. Found {len(all_results)} total pages")
+    print(f"✅ Results saved to: {output_file}")
+    
+    # Summary
+    rfp_count = sum(1 for result in all_results 
+                   if '"is_rfp": true' in result.get('claude_result', ''))
+    
+    print(f"\n📊 Summary: {rfp_count} potential RFPs found out of {len(all_results)} pages crawled")
+    
+    # Breakdown by district
+    print("📋 Breakdown by District:")
+    for district_url in SCHOOL_DISTRICTS:
+        district_results = [r for r in all_results if district_url in r.get('url', '')]
+        district_rfps = sum(1 for r in district_results 
+                           if '"is_rfp": true' in r.get('claude_result', ''))
+        print(f"  {district_url}: {district_rfps} RFPs out of {len(district_results)} pages")
+    
+    print("\nCrawler completed.")
 
 if __name__ == "__main__":
     main()
