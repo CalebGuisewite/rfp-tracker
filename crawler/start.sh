@@ -1,9 +1,14 @@
 #!/bin/bash
 
-echo "Starting RFP crawler with requests + BeautifulSoup..."
+echo "Starting RFP crawler with Selenium..."
 
-# Run the crawler from the correct directory
+# Test Selenium setup first
+echo "Testing Selenium setup..."
 cd /opt/render/project/src/crawler
+python test_selenium.py
+
+# Run the main crawler
+echo "Running main crawler..."
 python main.py
 
 echo "Crawler completed."

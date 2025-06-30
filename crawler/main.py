@@ -1,11 +1,11 @@
-from crawl_site_enhanced import crawl_site
+from crawl_with_selenium import crawl_site_with_selenium
 import json
 import os
 import sys
 
 def main():
     """Main crawler function with error handling"""
-    print("=== Starting RFP Crawler ===")
+    print("=== Starting RFP Crawler with Selenium ===")
     
     # Get the project root directory
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -21,24 +21,34 @@ def main():
     print(f"✅ Shared directory: {shared_dir}")
     
     try:
-        # Crawl the test school district
-        test_url = "https://www.boone.kyschools.us"  # Try a different school district
-        print(f"🕷️ Starting crawl of: {test_url}")
+        # Test with both Boone and Carroll County Schools (JavaScript-heavy sites)
+        test_urls = [
+            "https://www.boone.kyschools.us",
+            "https://www.carroll.kyschools.us"
+        ]
         
-        results = crawl_site(test_url, max_depth=3, max_pages=30)
+        all_results = []
         
-        print(f"✅ Crawl completed. Found {len(results)} pages")
+        for test_url in test_urls:
+            print(f"\n🕷️ Starting Selenium crawl of: {test_url}")
+            
+            results = crawl_site_with_selenium(test_url, max_depth=2, max_pages=10)
+            
+            print(f"✅ Completed {test_url}. Found {len(results)} pages")
+            all_results.extend(results)
+        
+        print(f"\n✅ Total crawl completed. Found {len(all_results)} total pages")
         
         # Save results
         output_file = os.path.join(shared_dir, "rfp_scan_results.json")
         with open(output_file, "w") as f:
-            json.dump(results, f, indent=2)
+            json.dump(all_results, f, indent=2)
         
         print(f"✅ Results saved to: {output_file}")
         
         # Show summary
         rfp_count = 0
-        for result in results:
+        for result in all_results:
             try:
                 claude_data = json.loads(result['claude_result'])
                 if claude_data.get("is_rfp", False):
@@ -46,7 +56,21 @@ def main():
             except:
                 pass
         
-        print(f"📊 Summary: {rfp_count} potential RFPs found out of {len(results)} pages crawled")
+        print(f"📊 Summary: {rfp_count} potential RFPs found out of {len(all_results)} pages crawled")
+        
+        # Show breakdown by district
+        print(f"\n📋 Breakdown by District:")
+        for test_url in test_urls:
+            district_results = [r for r in all_results if test_url in r['url']]
+            district_rfps = 0
+            for result in district_results:
+                try:
+                    claude_data = json.loads(result['claude_result'])
+                    if claude_data.get("is_rfp", False):
+                        district_rfps += 1
+                except:
+                    pass
+            print(f"  {test_url}: {district_rfps} RFPs out of {len(district_results)} pages")
         
     except Exception as e:
         print(f"❌ ERROR during crawling: {e}")
